@@ -15,9 +15,6 @@ Endpoints used: `/v1/notes` (note content), `/v1/uploads` (embedded images),
 vault registration and its folder settings). Nothing else leaves the vault, and
 there is no telemetry.
 
-A **Developer mode** toggle in settings points the plugin at a different server;
-it exists for local and staging builds, and is off unless you turn it on.
-
 Your access token is stored in `.obsidian/plugins/fokus-sync/data.json`, in plain
 text — Obsidian has no secure storage. If your vault syncs through iCloud,
 Dropbox or git, the token travels with it. Use a token you can revoke on its own,
