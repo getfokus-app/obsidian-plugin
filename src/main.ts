@@ -181,6 +181,23 @@ export default class FokusSyncPlugin extends Plugin {
     if (!workspace) throw new Error('This account has no workspace.');
     client.update({ workspaceId: workspace._id });
 
+    // A token for a different account makes every mirrored note id unreachable:
+    // the ids belong to the old account, so each push is a 403 the user cannot
+    // interpret. Drop the mirror and let the files re-adopt from their
+    // frontmatter ids, the same path a lost cache takes.
+    if (mirrorBelongsElsewhere(this.data.workspaceId, workspace._id)) {
+      const forgotten = Object.keys(this.data.entries).length;
+      this.data.entries = {};
+      this.data.pending = [];
+      this.dirty.clear();
+      if (forgotten > 0) {
+        new Notice(
+          `This vault was synced with a different Fokus account. ${forgotten} note(s) will be re-linked.`,
+        );
+      }
+    }
+    this.data.workspaceId = workspace._id;
+
     const status = await new ObsidianSourceApi(client).connect({
       vaultId: this.data.vaultId!,
       name: this.app.vault.getName(),

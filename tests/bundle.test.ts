@@ -136,3 +136,20 @@ describe('the default server', () => {
     expect(source).not.toContain('api.getfokus.app');
   });
 });
+
+/**
+ * Behaviour that lives in `main.ts` and therefore cannot be unit-tested: the
+ * file imports Obsidian, so the suite cannot load it at all.
+ *
+ * This exists because the account-change reset shipped once with its pure
+ * helper and its test in place but the CALL SITE missing — an edit that matched
+ * nothing. Everything was green and the feature did not exist. Asserting on the
+ * built artifact is the only thing that catches a helper nobody calls.
+ */
+describe('wiring that only the bundle can prove', () => {
+  const source = () => readFileSync(BUNDLE, 'utf8');
+
+  it('resets the mirror when the vault is pointed at another account', () => {
+    expect(source()).toContain('was synced with a different Fokus account');
+  });
+});
