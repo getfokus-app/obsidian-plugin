@@ -1,0 +1,27 @@
+{
+  "name": "fokus-sync",
+  "version": "1.0.0",
+  "description": "Two-way sync between an Obsidian vault and Fokus notes.",
+  "main": "main.js",
+  "private": true,
+  "scripts": {
+    "dev": "node esbuild.config.mjs",
+    "build": "tsc --noEmit && node esbuild.config.mjs production",
+    "types:check": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "format": "prettier --write \"src/**/*.ts\" \"tests/**/*.ts\"",
+    "test:e2e": "FOKUS_E2E=1 vitest run tests/e2e",
+    "format:check": "prettier --check \"src/**/*.ts\" \"tests/**/*.ts\""
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^22.20.3",
+    "builtin-modules": "^5.3.0",
+    "esbuild": "^0.28.2",
+    "obsidian": "^1.13.1",
+    "prettier": "^3.6.2",
+    "typescript": "^7.0.2",
+    "vitest": "^3.2.7"
+  }
+}

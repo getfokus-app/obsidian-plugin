@@ -1,0 +1,58 @@
+name: Release
+
+# The community store installs from a GitHub release whose tag is EXACTLY the
+# version in manifest.json — no `v` prefix. The three files must be attached as
+# individual assets, not inside a zip: Obsidian fetches them by name.
+on:
+  push:
+    tags:
+      - '[0-9]+.[0-9]+.[0-9]+'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - run: npm ci
+
+      # A tag that disagrees with the manifest produces a release Obsidian will
+      # not install, and the mistake is only visible to users. Fail here instead.
+      - name: Check the tag matches manifest.json
+        run: |
+          MANIFEST=$(node -p "require('./manifest.json').version")
+          if [ "$MANIFEST" != "${GITHUB_REF_NAME}" ]; then
+            echo "Tag ${GITHUB_REF_NAME} does not match manifest.json version $MANIFEST" >&2
+            exit 1
+          fi
+          if ! node -p "Object.keys(require('./versions.json'))" | grep -q "$MANIFEST"; then
+            echo "versions.json has no entry for $MANIFEST" >&2
+            exit 1
+          fi
+
+      - run: npm run format:check
+      - run: npm test
+      - run: npm run build
+
+      # The bundle guards (no dynamic import, no fetch, no node builtins, no
+      # innerHTML, requestUrl confined to the transport) run against the file
+      # that is about to ship, not a rebuild of it.
+      - name: Re-check the built bundle
+        run: npx vitest run tests/bundle.test.ts
+
+      - name: Create the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${GITHUB_REF_NAME}" \
+            --title "${GITHUB_REF_NAME}" \
+            --generate-notes \
+            main.js manifest.json versions.json

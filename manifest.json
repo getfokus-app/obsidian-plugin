@@ -1,0 +1,10 @@
+{
+  "id": "fokus-sync",
+  "name": "Fokus Sync",
+  "version": "1.0.0",
+  "minAppVersion": "1.6.0",
+  "description": "Two-way sync between your vault and Fokus notes, with tags, buckets, and embedded images.",
+  "author": "Fokus",
+  "authorUrl": "https://getfokus.com",
+  "isDesktopOnly": true
+}
