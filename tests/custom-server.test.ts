@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { DEFAULT_API_URL, showsCustomServer } from '@/sync/state';
+import { DEFAULT_API_URL, mirrorBelongsElsewhere, showsCustomServer } from '@/sync/state';
 
 describe('showsCustomServer', () => {
   it('stays hidden for the ordinary case', () => {
@@ -21,5 +21,27 @@ describe('showsCustomServer', () => {
     expect(showsCustomServer({ apiUrl: 'http://localhost:3000' })).toBe(true);
     expect(showsCustomServer({ apiUrl: 'http://localhost:3000', customServer: false })).toBe(true);
     expect(showsCustomServer({ apiUrl: 'https://fokus.example.com' })).toBe(true);
+  });
+});
+
+describe('mirrorBelongsElsewhere', () => {
+  /**
+   * Every mirror entry holds a Fokus note id, and note ids belong to one
+   * account. Pasting a token for a different account left the plugin pushing at
+   * ids the new token cannot touch — a permanent 403 shown as "forbidden", with
+   * nothing on screen to explain it.
+   */
+  it('is true when the vault was last synced with another account', () => {
+    expect(mirrorBelongsElsewhere('ws-old', 'ws-new')).toBe(true);
+  });
+
+  it('is false on a first connect, when there is nothing to discard', () => {
+    expect(mirrorBelongsElsewhere(undefined, 'ws-new')).toBe(false);
+    expect(mirrorBelongsElsewhere('', 'ws-new')).toBe(false);
+  });
+
+  /** Re-connecting to the same account must keep the mirror, or everything re-adopts. */
+  it('is false when reconnecting to the same workspace', () => {
+    expect(mirrorBelongsElsewhere('ws-same', 'ws-same')).toBe(false);
   });
 });

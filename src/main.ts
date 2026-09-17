@@ -12,7 +12,7 @@ import { FokusSettingTab } from '@/settings/settings-tab';
 import { isPathInScope } from '@/settings/scope';
 import { PushResult, SyncEngine } from '@/sync/engine';
 import { ApiFokusPort } from '@/sync/fokus-port';
-import { PluginData, withDefaults } from '@/sync/state';
+import { PluginData, mirrorBelongsElsewhere, withDefaults } from '@/sync/state';
 import { ObsidianVaultPort } from '@/sync/vault-port';
 import { ConfirmModal } from '@/ui/confirm-modal';
 import { SyncStatusBar } from '@/ui/status-bar';

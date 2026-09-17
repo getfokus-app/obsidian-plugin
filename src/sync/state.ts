@@ -65,6 +65,15 @@ export interface PluginData {
   vaultId?: string;
   /** Minted once per install; must differ from every other Fokus client. */
   clientId?: string;
+  /**
+   * The workspace the mirror below was built against.
+   *
+   * Kept so a change of account can be noticed. Every entry holds a Fokus note
+   * id, and those ids belong to one account — point the plugin at a different
+   * one and every push targets a note the new token may not touch, which the
+   * server answers with a 403 the user has no way to interpret.
+   */
+  workspaceId?: string;
   settings: {
     apiUrl: string;
     folders: string[];
@@ -131,4 +140,15 @@ export function withDefaults(stored: Partial<PluginData> | null | undefined): Pl
  */
 export function showsCustomServer(settings: { apiUrl: string; customServer?: boolean }): boolean {
   return settings.customServer === true || settings.apiUrl !== DEFAULT_API_URL;
+}
+
+/**
+ * Whether the mirror belongs to a different account than the one just resolved.
+ *
+ * Only true when there IS a previous workspace and it differs — a first connect
+ * has nothing to discard, and re-connecting to the same account must keep the
+ * mirror or every note would be re-adopted.
+ */
+export function mirrorBelongsElsewhere(stored: string | undefined, resolved: string): boolean {
+  return !!stored && stored !== resolved;
 }
