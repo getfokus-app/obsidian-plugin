@@ -119,9 +119,6 @@ stopped rather than dropping the rest.
 
 ## Limitations
 
-Measured, not assumed — every line here is covered by a test in the backend
-converter.
-
 **Preserved exactly, but Fokus has no feature for them**, so they show as the
 characters you typed rather than as a rendered thing:
 
@@ -135,9 +132,7 @@ characters you typed rather than as a rendered thing:
 | `%%comment%%` | **visible** — Obsidian hides these, Fokus does not |
 | Dataview, Templater, Tasks syntax | plain text |
 
-Nothing there is lost, and it comes back to the vault byte-identical. The one
-worth knowing is `%%comments%%`: what you meant as a private note is readable in
-Fokus.
+Nothing there is lost — it comes back to the vault exactly as you wrote it.
 
 **Rewritten once, the first time a file syncs.** After that the file is stable:
 
@@ -161,26 +156,19 @@ Fokus rejects a write from the vault instead of destroying them.
 its Fokus title changes; moving a file when its bucket changes; deleting on
 either side (it only ever unlinks); Obsidian mobile.
 
-`docs/sample-note.md` is a real note exercising all of this. It round-trips
-byte-identically, and is what the screenshot above shows.
+`docs/sample-note.md` is an example note covering all of this, and is the one
+shown in the screenshot above.
 
-## How that is enforced
+## Formatting
 
-Content is converted by Fokus, not by this plugin, so there is exactly one
-definition of "canonical markdown" and the file cannot drift from it.
+Content is converted by Fokus, not by this plugin, so there is one definition of
+canonical markdown and your file cannot drift from it.
 
-Whether a file settles is checked **on the server, before your file is
-touched**: the plugin re-sends the server's own output until it stops changing.
-Some markdown genuinely needs three passes — escaped `\*stars\*` is the known
-case — so one round trip would prove nothing. A file that still has not settled
-is refused: its body is left exactly as you wrote it, and it stays refused until
-you edit it. Only a `fokus-id` is added, so the refusal is remembered and the
-note is not created twice.
-
-The honest limit of that check: it catches a file that never settles, not one
-that settles on something wrong. A wikilink alias inside a table cell used to
-destroy a cell and then converge, so the probe accepted it — that specific bug
-is fixed, but the shape of the gap is worth knowing.
+Before your file is touched, the plugin checks that it settles — it sends the
+note and re-sends what comes back until the result stops changing. A file that
+never settles is **refused**: its body is left exactly as you wrote it, and it
+stays refused until you edit it. Only a `fokus-id` is added, so the refusal is
+remembered and the note is not created twice.
 
 ## Development
 
@@ -204,12 +192,10 @@ The engine talks to a `VaultPort` and a `FokusPort` and imports neither Obsidian
 nor the network. The e2e harness swaps in a real temp-directory vault and Node
 fetch, so the code under test is the code that ships.
 
-Some things the harness cannot reach and only a real vault proves: the settings
-tab, the file watcher firing, `processFrontMatter`'s YAML round-trip, and unload
-cleanup. `src/main.ts` imports Obsidian, so the unit suite cannot load it at all
-— behaviour wired only there is asserted against the built `main.js` in
-`tests/bundle.test.ts`, which is the only place a helper nobody calls looks
-different from one that is called.
+`src/main.ts` imports Obsidian and cannot be loaded by the unit suite, so
+behaviour wired only there is asserted against the built `main.js` in
+`tests/bundle.test.ts`. The settings tab, the file watcher, frontmatter writes
+and unload cleanup need checking by hand in Obsidian.
 
 ## Licence
 
