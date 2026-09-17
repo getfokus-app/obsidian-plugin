@@ -13,10 +13,9 @@ guess.
 
 ## What it sends where
 
-Every synced note is sent to your own Fokus account, at the server you configure
-(`https://api.getfokus.app` by default, or your own if you self-host). Endpoints
-used: `/v1/notes`, `/v1/workspaces`, `/integrations/obsidian/*`. Nothing else
-leaves the vault, and there is no telemetry.
+Every synced note is sent to your own Fokus account at `https://api.getfokus.com`.
+Endpoints used: `/v1/notes`, `/v1/workspaces`, `/integrations/obsidian/*`.
+Nothing else leaves the vault, and there is no telemetry.
 
 Your access token is stored in `.obsidian/plugins/fokus-sync/data.json`, in plain
 text — Obsidian has no secure storage. If your vault syncs through iCloud,
@@ -25,7 +24,8 @@ and revoke it if the vault is ever shared.
 
 ## Getting a token
 
-In Fokus, go to **Settings → API tokens**, create one, and paste it into the
+In Fokus, go to **Settings → Integrations → Obsidian**, create a token under
+**API tokens**, and paste it into the
 plugin's settings. The value is shown once; if you lose it, revoke that token and
 make another. Name it after this vault so you can tell which one to revoke later.
 
