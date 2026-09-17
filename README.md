@@ -9,7 +9,29 @@ images uploaded to Fokus.
 
 Desktop only for now.
 
-## What it sends where
+## ✨ Why sync to Fokus
+
+A vault is very good at writing things down and not good at being asked
+questions. Once a note is in Fokus it joins everything else you track there:
+
+- 🔍 **Search that understands meaning.** Notes are embedded, so asking about
+  "the decision on rate limits" finds the note that talks about throttling —
+  even though it never uses the word.
+- 🧭 **Captain Fokus can read them.** The assistant searches your notes when it
+  answers, so what you wrote in the vault informs planning, summaries and
+  recall instead of sitting in a folder it cannot see.
+- 🔗 **Attach a note to real work.** A note can belong to a task or an
+  objective, so the thinking lives next to the thing it is about.
+- 🗂️ **Buckets and tags.** Each synced folder maps to a bucket, and `#tags`
+  become Fokus tags, so vault notes file themselves alongside everything else.
+- 🕸️ **Connected, not isolated.** Notes become part of the knowledge graph Fokus
+  builds across your tasks, objectives, people and calendar.
+- 📱 **Readable anywhere.** Web, desktop and mobile — including on a phone,
+  where Obsidian sync is not something you want to set up.
+
+Your vault stays the place you write. Fokus becomes the place it can be found.
+
+## 🔐 What it sends where
 
 Every synced note is sent to your own Fokus account at `https://api.getfokus.com`.
 Endpoints used: `/v1/notes` (note content), `/v1/uploads` (embedded images),
@@ -27,7 +49,7 @@ Obsidian's keychain is shared between plugins by design, so another plugin you
 install could read the entry. Use a token you can revoke on its own, and revoke
 it if you stop using this plugin.
 
-## Getting a token
+## 🔑 Getting a token
 
 In Fokus, go to **Settings → Integrations → Obsidian**, create a token under
 **API tokens**, and paste it into the plugin's settings. The value is shown once;
@@ -37,7 +59,7 @@ you can tell which one to revoke later.
 A token grants full access to your account for 90 days, so revoke any you are no
 longer using.
 
-## How the mapping works
+## 🧩 How the mapping works
 
 Each synced file gets a `fokus-id` in its frontmatter. That key is the mapping:
 it survives renames, moves, a plugin reinstall, and the vault being opened on
@@ -50,7 +72,7 @@ Duplicating a note copies its `fokus-id` too. The plugin notices, leaves the
 original alone, and gives the copy an id of its own — otherwise the two files
 would overwrite each other's note forever.
 
-## Tags and buckets
+## 🏷️ Tags and buckets
 
 `#tags` in the body and `tags:` in frontmatter both become Fokus tags, matched by
 name and created if they don't exist. Tags inside code — a `# heading` in a
@@ -61,7 +83,7 @@ Which Fokus bucket a note lands in is configured **in Fokus**, on the Obsidian
 connection, as a vault-folder → bucket mapping. The most specific folder wins, so
 mapping both `Work` and `Work/Clients` files a client note in the client bucket.
 
-## Images and attachments
+## 🖼️ Images and attachments
 
 An embedded image is uploaded to Fokus and rendered there, while **the file in
 your vault is left exactly as you wrote it** — `![[diagram.png]]` stays
@@ -83,7 +105,7 @@ Uploads are paced to stay inside the server's limit, so a note with dozens of
 images takes a few minutes to finish rather than being refused part-way. The
 edit lock is renewed while that runs.
 
-## What comes back down
+## ⬇️ What comes back down
 
 Only notes that started in your vault. A note written natively in Fokus stays
 there — this sync never invents a filename or picks a folder for you.
@@ -92,21 +114,21 @@ While you are editing a note, the plugin holds an edit lock, so Fokus shows it
 read-only instead of racing you. The lock expires on its own, so a crash or a
 closed laptop never leaves a note stuck.
 
-## When both sides changed
+## ⚔️ When both sides changed
 
 Nothing is discarded. Your file keeps what you have in front of you, and the
 Fokus version is written beside it as `Note (conflict 2026-09-17).md`. That copy is
 marked `fokus-sync: false`, so it is never itself synced — it is just a file you
 can read, merge from, and delete. Both sides then converge on your local version.
 
-## Deleting
+## 🗑️ Deleting
 
 Deleting a file stops it syncing; its Fokus note is left exactly as it is. A file
 can vanish for reasons that are not a decision to delete anything — a move out of
 a synced folder, a vault-sync hiccup, a stray keystroke — and acting on that is
 not recoverable. Put the file back with its `fokus-id` intact and it re-links.
 
-## Commands
+## ⌨️ Commands
 
 - **Sync now** — push whatever is currently queued.
 - **Check Fokus for changes** — pull immediately rather than waiting for the poll.
@@ -117,7 +139,7 @@ not recoverable. Put the file back with its `fokus-id` intact and it re-links.
 The queue is persisted, so quitting or crashing mid-sync resumes where it
 stopped rather than dropping the rest.
 
-## Limitations
+## ⚠️ Limitations
 
 **Preserved exactly, but Fokus has no feature for them**, so they show as the
 characters you typed rather than as a rendered thing:
@@ -159,7 +181,7 @@ either side (it only ever unlinks); Obsidian mobile.
 `docs/sample-note.md` is an example note covering all of this, and is the one
 shown in the screenshot above.
 
-## Formatting
+## 📝 Formatting
 
 Content is converted by Fokus, not by this plugin, so there is one definition of
 canonical markdown and your file cannot drift from it.
@@ -170,7 +192,7 @@ never settles is **refused**: its body is left exactly as you wrote it, and it
 stays refused until you edit it. Only a `fokus-id` is added, so the refusal is
 remembered and the note is not created twice.
 
-## Development
+## 🛠️ Development
 
 ```bash
 npm install
@@ -197,6 +219,6 @@ behaviour wired only there is asserted against the built `main.js` in
 `tests/bundle.test.ts`. The settings tab, the file watcher, frontmatter writes
 and unload cleanup need checking by hand in Obsidian.
 
-## Licence
+## 📄 Licence
 
 MIT
