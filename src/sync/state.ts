@@ -49,6 +49,16 @@ export interface MirrorEntry {
   note?: string;
 }
 
+/**
+ * Where Fokus lives unless the plugin is pointed somewhere else.
+ *
+ * `.com`, NOT `.app` — `api.getfokus.app` does not resolve at all, so a build
+ * shipping it would fail to connect for every user with no clue why. Several
+ * test fixtures elsewhere in the workspace use the `.app` form; they are
+ * arbitrary strings, and this is not.
+ */
+export const DEFAULT_API_URL = 'https://api.getfokus.com';
+
 export interface PluginData {
   schemaVersion: 1;
   /** Minted once per vault; identifies this vault to the backend. */
@@ -58,6 +68,14 @@ export interface PluginData {
   settings: {
     apiUrl: string;
     folders: string[];
+    /**
+     * Reveals the server field. Off for everyone: Fokus is not self-hosted, so
+     * the only reason to change it is pointing a development or staging build
+     * somewhere other than the live API. A URL box on the main screen is the
+     * kind of thing people change once, forget, and then report as "sync
+     * stopped working".
+     */
+    customServer?: boolean;
   };
   /**
    * Vault folder → Fokus bucket, as configured on the connection. Mirrored here
@@ -79,7 +97,7 @@ export interface PluginData {
 
 export const DEFAULT_DATA: PluginData = {
   schemaVersion: 1,
-  settings: { apiUrl: 'https://api.getfokus.app', folders: [] },
+  settings: { apiUrl: DEFAULT_API_URL, folders: [] },
   folderMappings: {},
   syncTags: true,
   pending: [],
@@ -101,4 +119,16 @@ export function withDefaults(stored: Partial<PluginData> | null | undefined): Pl
     entries: rest.entries ?? {},
     pending: rest.pending ?? [],
   };
+}
+
+/**
+ * Whether the server field should be on screen.
+ *
+ * The stored flag is not the only input on purpose: a URL that is not the
+ * default is ALWAYS shown, whatever the flag says. Otherwise a vault pointed at
+ * a local or staging server could sit behind a toggle that reads "off", and the
+ * settings screen would be actively denying where the notes are going.
+ */
+export function showsCustomServer(settings: { apiUrl: string; customServer?: boolean }): boolean {
+  return settings.customServer === true || settings.apiUrl !== DEFAULT_API_URL;
 }

@@ -120,3 +120,19 @@ describe('release metadata', () => {
     expect(major! > 1 || (major === 1 && minor! >= 6)).toBe(true);
   });
 });
+
+/**
+ * The default server, pinned in the artifact that ships.
+ *
+ * `api.getfokus.app` does not resolve. A build carrying it would fail to
+ * connect for every user, with an error that looks like their network rather
+ * than our typo — and the wrong form appears in enough fixtures and notes
+ * around the workspace to be easy to copy back in by accident.
+ */
+describe('the default server', () => {
+  it('points at the production API and never at the .app host', () => {
+    const source = readFileSync(BUNDLE, 'utf8');
+    expect(source).toContain('https://api.getfokus.com');
+    expect(source).not.toContain('api.getfokus.app');
+  });
+});
