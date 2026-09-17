@@ -1,4 +1,12 @@
-import { App, Notice, PluginSettingTab, Setting, debounce, normalizePath } from 'obsidian';
+import {
+  App,
+  Notice,
+  PluginSettingTab,
+  SecretComponent,
+  Setting,
+  debounce,
+  normalizePath,
+} from 'obsidian';
 
 import type FokusSyncPlugin from '@/main';
 import { DEFAULT_API_URL, showsCustomServer } from '@/sync/state';
@@ -68,17 +76,19 @@ export class FokusSettingTab extends PluginSettingTab {
 
     new Setting(containerEl)
       .setName('Access token')
-      .setDesc('Create one in Fokus under Settings. It is stored in this vault in plain text.')
-      .addText((text) => {
-        text.inputEl.type = 'password';
-        text
-          .setPlaceholder('Paste your token')
-          .setValue(this.plugin.token ?? '')
-          .onChange((value) => {
-            this.plugin.stageToken(value.trim());
+      .setDesc('Create one in Fokus, under Settings → Integrations → Obsidian.')
+      // SecretComponent, not a text field: the value goes to the OS keychain and
+      // only its id reaches `data.json`, so the token no longer sits in the
+      // vault or travels with it through iCloud, Dropbox or git. There is no
+      // `addSecret()` on Setting — `addComponent` is how it mounts.
+      .addComponent((el) =>
+        new SecretComponent(this.app, el)
+          .setValue(this.plugin.data.secretId ?? '')
+          .onChange((secretId) => {
+            this.plugin.stageSecretId(secretId);
             this.save();
-          });
-      });
+          }),
+      );
 
     // The row has to say which state it is in. Reading "Connect" under a line
     // that already says "Connected" invites the user to press it again to find

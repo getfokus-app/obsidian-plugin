@@ -1,5 +1,6 @@
 import { Notice, Platform, Plugin, TAbstractFile, TFile, debounce } from 'obsidian';
 
+import { SecretsPort, obsidianSecrets, planTokenMigration } from '@/auth/secrets';
 import { FokusClient } from '@/api/client';
 import { FokusApiError } from '@/api/errors';
 import { isBackoff } from '@/sync/backoff';
@@ -22,7 +23,7 @@ const MODIFY_DEBOUNCE_MS = 2500;
 
 export default class FokusSyncPlugin extends Plugin {
   data!: PluginData;
-  token?: string;
+  private secrets!: SecretsPort;
   connected = false;
 
   private engine?: SyncEngine;
@@ -63,7 +64,17 @@ export default class FokusSyncPlugin extends Plugin {
     // loading twice would just be a second disk hit for the same object.
     const stored = (await this.loadData()) as (Partial<PluginData> & { token?: string }) | null;
     this.data = withDefaults(stored);
-    this.token = stored?.token;
+    this.secrets = obsidianSecrets(this.app);
+
+    // Anything left in `data.json` by a build that predates secret storage is
+    // moved into the keychain and dropped from the file. The write happens
+    // before the delete, so an interrupted migration never loses the token.
+    const migration = planTokenMigration(stored?.token, this.data.secretId);
+    if (migration) {
+      this.secrets.set(migration.secretId, migration.secret);
+      this.data.secretId = migration.secretId;
+      new Notice('Your Fokus token has been moved out of the vault and into the system keychain.');
+    }
 
     // Identify this install and this vault once, and keep them. The client id
     // must differ from every other Fokus client: a sign-in reusing one would
@@ -252,13 +263,23 @@ export default class FokusSyncPlugin extends Plugin {
     return { workspaceName: workspace.name };
   }
 
-  /** Hold the typed token; the settings tab decides when to persist. */
-  stageToken(token: string): void {
-    this.token = token || undefined;
+  /** The token itself never lives on this object; it is read on demand. */
+  get token(): string | undefined {
+    return (this.data.secretId ? this.secrets.get(this.data.secretId) : null) ?? undefined;
   }
 
+  /** Record which keychain entry the settings tab picked. */
+  stageSecretId(secretId: string): void {
+    this.data.secretId = secretId || undefined;
+  }
+
+  /**
+   * Writes settings as-is. The override that used to re-attach the token is
+   * gone — the value belongs to the keychain now, and putting it back into the
+   * file on every save is exactly what this change removes.
+   */
   async saveData(data: unknown): Promise<void> {
-    await super.saveData({ ...(data as object), token: this.token });
+    await super.saveData(data as object);
   }
 
   /**

@@ -15,10 +15,15 @@ Endpoints used: `/v1/notes` (note content), `/v1/uploads` (embedded images),
 vault registration and its folder settings). Nothing else leaves the vault, and
 there is no telemetry.
 
-Your access token is stored in `.obsidian/plugins/fokus-sync/data.json`, in plain
-text — Obsidian has no secure storage. If your vault syncs through iCloud,
-Dropbox or git, the token travels with it. Use a token you can revoke on its own,
-and revoke it if the vault is ever shared.
+Your access token goes into Obsidian's secret storage, which is the operating
+system's keychain — macOS Keychain, Windows DPAPI, libsecret on Linux. Only the
+name of the entry is written to `.obsidian/plugins/fokus-sync/data.json`, so the
+token is not in your vault and does not travel with it through iCloud, Dropbox or
+git.
+
+Obsidian's keychain is shared between plugins by design, so another plugin you
+install could read the entry. Use a token you can revoke on its own, and revoke
+it if you stop using this plugin.
 
 ## Getting a token
 
@@ -27,9 +32,8 @@ In Fokus, go to **Settings → Integrations → Obsidian**, create a token under
 if you lose it, revoke that token and create another. Name it after this vault so
 you can tell which one to revoke later.
 
-A token grants full access to your account for 90 days. See the storage warning
-above before putting one in a vault you share or back up to someone else's
-computer.
+A token grants full access to your account for 90 days, so revoke any you are no
+longer using.
 
 ## How the mapping works
 

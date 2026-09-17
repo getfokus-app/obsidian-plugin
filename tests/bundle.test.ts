@@ -1,4 +1,6 @@
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
+
+import { TOKEN_SECRET_ID } from '@/auth/secrets';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
@@ -114,10 +116,17 @@ describe('release metadata', () => {
     expect(manifest.description.endsWith('.')).toBe(true);
   });
 
-  it('declares a minimum app version that supports Vault.process', () => {
-    // `Vault.process` is how every write avoids clobbering a concurrent edit.
-    const [major, minor] = String(manifest.minAppVersion).split('.').map(Number);
-    expect(major! > 1 || (major === 1 && minor! >= 6)).toBe(true);
+  /**
+   * 1.11.4 is where `SecretStorage.setSecret`/`getSecret` land. Declaring less
+   * than that would let the plugin install on a build with no keychain, where
+   * the token has nowhere to go — and `Vault.process` (1.6.0) is comfortably
+   * below it.
+   */
+  it('declares a minimum app version that has secret storage', () => {
+    const [major, minor, patch] = String(manifest.minAppVersion).split('.').map(Number);
+    const atLeast = (a: number, b: number, c: number) =>
+      major! > a || (major === a && (minor! > b || (minor === b && patch! >= c)));
+    expect(atLeast(1, 11, 4)).toBe(true);
   });
 });
 
@@ -151,5 +160,44 @@ describe('wiring that only the bundle can prove', () => {
 
   it('resets the mirror when the vault is pointed at another account', () => {
     expect(source()).toContain('was synced with a different Fokus account');
+  });
+});
+
+/**
+ * The credential path, asserted on the artifact.
+ *
+ * `main.ts` and the settings tab both import Obsidian, so no unit test can see
+ * whether the keychain is actually wired — only whether the helpers exist. The
+ * Obsidian review team rejects plugins that keep credentials in `data.json`, so
+ * a helper nobody calls would be both a security regression and a rejection.
+ */
+describe('the access token never goes in data.json', () => {
+  const source = () => readFileSync(BUNDLE, 'utf8');
+
+  it('reads and writes the token through Obsidian secret storage', () => {
+    expect(source()).toContain('secretStorage');
+    expect(source()).toContain('getSecret');
+    expect(source()).toContain('setSecret');
+  });
+
+  it('offers the keychain picker instead of a text field', () => {
+    expect(source()).toContain('SecretComponent');
+  });
+
+  it('migrates a plaintext token left by an older build', () => {
+    expect(source()).toContain('moved out of the vault and into the system keychain');
+  });
+
+  /**
+   * What `data.json` carries instead.
+   *
+   * A negative regex over `token: this.token` was tried and dropped: two
+   * legitimate uses remain, both building an API session that genuinely needs
+   * the value. Matching bundled output by shape is brittle, so this asserts the
+   * positive — the id is the thing that gets persisted.
+   */
+  it('persists the keychain id rather than the value', () => {
+    expect(source()).toContain('secretId');
+    expect(source()).toContain(TOKEN_SECRET_ID);
   });
 });

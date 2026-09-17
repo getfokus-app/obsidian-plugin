@@ -74,6 +74,14 @@ export interface PluginData {
    * server answers with a 403 the user has no way to interpret.
    */
   workspaceId?: string;
+  /**
+   * The keychain id the access token is stored under, never the token itself.
+   *
+   * Obsidian's secret storage holds the value; `data.json` holds only this, so
+   * a vault synced through iCloud, Dropbox or git no longer carries a
+   * credential.
+   */
+  secretId?: string;
   settings: {
     apiUrl: string;
     folders: string[];
