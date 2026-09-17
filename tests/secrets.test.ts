@@ -5,7 +5,7 @@ import { TOKEN_SECRET_ID, TokenStore, obsidianSecrets, shouldMigrateToken } from
 describe('shouldMigrateToken', () => {
   /** The case every existing install hits once. */
   it('moves a plaintext token out of data.json', () => {
-    expect(shouldMigrateToken('eyJhbGciOi.abc.def', null)).toBe(true);
+    expect(shouldMigrateToken('not-a-real-token', null)).toBe(true);
   });
 
   it('does nothing for a vault that never held one', () => {
@@ -71,10 +71,10 @@ describe('TokenStore', () => {
     const { store, port } = fakeKeychain();
     const tokens = new TokenStore(port);
 
-    tokens.set('  eyJhbGciOi.abc  ');
+    tokens.set('  not-a-real-token  ');
 
-    expect(store[TOKEN_SECRET_ID]).toBe('eyJhbGciOi.abc');
-    expect(tokens.get()).toBe('eyJhbGciOi.abc');
+    expect(store[TOKEN_SECRET_ID]).toBe('not-a-real-token');
+    expect(tokens.get()).toBe('not-a-real-token');
   });
 
   it('reports no token when the keychain is empty', () => {
