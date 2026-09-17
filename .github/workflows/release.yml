@@ -45,8 +45,14 @@ jobs:
       # The bundle guards (no dynamic import, no fetch, no node builtins, no
       # innerHTML, requestUrl confined to the transport) run against the file
       # that is about to ship, not a rebuild of it.
+      #
+      # Those tests skip themselves when main.js is absent — which is right for
+      # `npm test` before the build, and would be a silent pass here. Assert the
+      # file exists first so a build that produced nothing fails loudly.
       - name: Re-check the built bundle
-        run: npx vitest run tests/bundle.test.ts
+        run: |
+          test -s main.js || { echo "main.js missing or empty after build" >&2; exit 1; }
+          npx vitest run tests/bundle.test.ts
 
       - name: Create the release
         env:

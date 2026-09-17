@@ -137,7 +137,7 @@ describe('release metadata', () => {
  * than our typo — and the wrong form appears in enough fixtures and notes
  * around the workspace to be easy to copy back in by accident.
  */
-describe('the default server', () => {
+describe.runIf(existsSync(BUNDLE))('the default server', () => {
   it('points at the production API and never at the .app host', () => {
     const source = readFileSync(BUNDLE, 'utf8');
     expect(source).toContain('https://api.getfokus.com');
@@ -154,7 +154,7 @@ describe('the default server', () => {
  * nothing. Everything was green and the feature did not exist. Asserting on the
  * built artifact is the only thing that catches a helper nobody calls.
  */
-describe('wiring that only the bundle can prove', () => {
+describe.runIf(existsSync(BUNDLE))('wiring that only the bundle can prove', () => {
   const source = () => readFileSync(BUNDLE, 'utf8');
 
   it('resets the mirror when the vault is pointed at another account', () => {
@@ -170,7 +170,7 @@ describe('wiring that only the bundle can prove', () => {
  * Obsidian review team rejects plugins that keep credentials in `data.json`, so
  * a helper nobody calls would be both a security regression and a rejection.
  */
-describe('the access token never goes in data.json', () => {
+describe.runIf(existsSync(BUNDLE))('the access token never goes in data.json', () => {
   const source = () => readFileSync(BUNDLE, 'utf8');
 
   /**
