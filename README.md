@@ -1,5 +1,7 @@
 # Fokus Sync
 
+![Fokus Sync — notes flow both directions between an Obsidian vault and Fokus](docs/banner.png)
+
 Sync your Obsidian vault notes into [Fokus](https://getfokus.com).
 
 Notes flow both directions, with edit locking, conflict copies, and embedded
