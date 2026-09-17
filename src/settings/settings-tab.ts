@@ -1,12 +1,4 @@
-import {
-  App,
-  Notice,
-  PluginSettingTab,
-  SecretComponent,
-  Setting,
-  debounce,
-  normalizePath,
-} from 'obsidian';
+import { App, Notice, PluginSettingTab, Setting, debounce, normalizePath } from 'obsidian';
 
 import type FokusSyncPlugin from '@/main';
 import { DEFAULT_API_URL, showsCustomServer } from '@/sync/state';
@@ -77,18 +69,20 @@ export class FokusSettingTab extends PluginSettingTab {
     new Setting(containerEl)
       .setName('Access token')
       .setDesc('Create one in Fokus, under Settings → Integrations → Obsidian.')
-      // SecretComponent, not a text field: the value goes to the OS keychain and
-      // only its id reaches `data.json`, so the token no longer sits in the
-      // vault or travels with it through iCloud, Dropbox or git. There is no
-      // `addSecret()` on Setting — `addComponent` is how it mounts.
-      .addComponent((el) =>
-        new SecretComponent(this.app, el)
-          .setValue(this.plugin.data.secretId ?? '')
-          .onChange((secretId) => {
-            this.plugin.stageSecretId(secretId);
-            this.save();
-          }),
-      );
+      // An ordinary password field, not Obsidian's SecretComponent. That
+      // component makes the user name the secret so it can be shared between
+      // plugins — pointless for a token that is ours alone, and it turns pasting
+      // a token into inventing an id. The value still goes to the OS keychain;
+      // the id is a constant the user never sees.
+      .addText((text) => {
+        text.inputEl.type = 'password';
+        text
+          .setPlaceholder('Paste your token')
+          .setValue(this.plugin.token ?? '')
+          .onChange((value) => {
+            this.plugin.setToken(value);
+          });
+      });
 
     // The row has to say which state it is in. Reading "Connect" under a line
     // that already says "Connected" invites the user to press it again to find

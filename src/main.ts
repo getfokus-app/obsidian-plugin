@@ -1,6 +1,6 @@
 import { Notice, Platform, Plugin, TAbstractFile, TFile, debounce } from 'obsidian';
 
-import { SecretsPort, obsidianSecrets, planTokenMigration } from '@/auth/secrets';
+import { TokenStore, obsidianSecrets } from '@/auth/secrets';
 import { FokusClient } from '@/api/client';
 import { FokusApiError } from '@/api/errors';
 import { isBackoff } from '@/sync/backoff';
@@ -23,7 +23,7 @@ const MODIFY_DEBOUNCE_MS = 2500;
 
 export default class FokusSyncPlugin extends Plugin {
   data!: PluginData;
-  private secrets!: SecretsPort;
+  private tokens!: TokenStore;
   connected = false;
 
   private engine?: SyncEngine;
@@ -64,15 +64,12 @@ export default class FokusSyncPlugin extends Plugin {
     // loading twice would just be a second disk hit for the same object.
     const stored = (await this.loadData()) as (Partial<PluginData> & { token?: string }) | null;
     this.data = withDefaults(stored);
-    this.secrets = obsidianSecrets(this.app);
+    this.tokens = new TokenStore(obsidianSecrets(this.app));
 
     // Anything left in `data.json` by a build that predates secret storage is
     // moved into the keychain and dropped from the file. The write happens
     // before the delete, so an interrupted migration never loses the token.
-    const migration = planTokenMigration(stored?.token, this.data.secretId);
-    if (migration) {
-      this.secrets.set(migration.secretId, migration.secret);
-      this.data.secretId = migration.secretId;
+    if (this.tokens.migrate(stored?.token)) {
       new Notice('Your Fokus token has been moved out of the vault and into the system keychain.');
     }
 
@@ -265,12 +262,17 @@ export default class FokusSyncPlugin extends Plugin {
 
   /** The token itself never lives on this object; it is read on demand. */
   get token(): string | undefined {
-    return (this.data.secretId ? this.secrets.get(this.data.secretId) : null) ?? undefined;
+    return this.tokens.get();
   }
 
-  /** Record which keychain entry the settings tab picked. */
-  stageSecretId(secretId: string): void {
-    this.data.secretId = secretId || undefined;
+  /**
+   * Write the pasted token straight to the keychain.
+   *
+   * Nothing about it reaches `data.json` — not the value, and not an id, since
+   * the id is a constant.
+   */
+  setToken(token: string): void {
+    this.tokens.set(token);
   }
 
   /**

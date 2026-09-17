@@ -1,6 +1,5 @@
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 
-import { TOKEN_SECRET_ID } from '@/auth/secrets';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
@@ -174,30 +173,35 @@ describe('wiring that only the bundle can prove', () => {
 describe('the access token never goes in data.json', () => {
   const source = () => readFileSync(BUNDLE, 'utf8');
 
-  it('reads and writes the token through Obsidian secret storage', () => {
-    expect(source()).toContain('secretStorage');
-    expect(source()).toContain('getSecret');
-    expect(source()).toContain('setSecret');
+  /**
+   * What the bundle can honestly prove is ABSENCE. Presence it cannot: a grep
+   * for `setSecret` still matched after the migration's call site was deleted,
+   * so those assertions were dropped and the behaviour moved to `TokenStore`,
+   * where a fake keychain drives it for real (tests/secrets.test.ts).
+   */
+  it('puts neither the token nor a secret id in settings', () => {
+    expect(source()).not.toContain('secretId');
   });
 
-  it('offers the keychain picker instead of a text field', () => {
-    expect(source()).toContain('SecretComponent');
+  /**
+   * Deliberately NOT SecretComponent: it makes the user invent an id so the
+   * secret can be shared between plugins, which is meaningless for a token that
+   * is ours alone. A password field writing to a fixed id is the same security
+   * property with none of the ceremony.
+   */
+  it('never asks the user to name the secret', () => {
+    expect(source()).not.toContain('SecretComponent');
   });
 
   it('migrates a plaintext token left by an older build', () => {
     expect(source()).toContain('moved out of the vault and into the system keychain');
   });
-
-  /**
-   * What `data.json` carries instead.
-   *
-   * A negative regex over `token: this.token` was tried and dropped: two
-   * legitimate uses remain, both building an API session that genuinely needs
-   * the value. Matching bundled output by shape is brittle, so this asserts the
-   * positive — the id is the thing that gets persisted.
-   */
-  it('persists the keychain id rather than the value', () => {
-    expect(source()).toContain('secretId');
-    expect(source()).toContain(TOKEN_SECRET_ID);
-  });
 });
+
+/**
+ * Release metadata the community store enforces, checked here so a mistake is a
+ * failing test rather than a release Obsidian silently refuses to install.
+ *
+ * The store matches a GitHub release tag against `manifest.json` exactly, and
+ * `versions.json` is what tells an older Obsidian which build it may take.
+ */

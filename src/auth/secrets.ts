@@ -35,38 +35,71 @@ export function obsidianSecrets(app: {
 }
 
 /**
- * The id this plugin stores its token under.
+ * The id this plugin stores its token under. Fixed, and never shown.
  *
- * Lowercase alphanumeric with dashes — `setSecret` throws on anything else. The
- * store is shared across plugins by design, so the name is explicit about whose
- * secret it is.
+ * Obsidian's `SecretComponent` asks the user to invent an id, because the store
+ * is shared and people may want one key across several plugins. That trade does
+ * not apply here: there is exactly one secret and it is ours, so naming it is
+ * ceremony the user gains nothing from. The field stays an ordinary password
+ * box and the value goes to this id.
+ *
+ * Lowercase alphanumeric with dashes — `setSecret` throws on anything else.
  */
 export const TOKEN_SECRET_ID = 'fokus-access-token';
 
-export interface TokenMigration {
-  /** The id to record in settings. */
-  secretId: string;
-  /** The value to write into the keychain. */
-  secret: string;
+/**
+ * Whether a token found sitting in `data.json` should be moved to the keychain.
+ *
+ * False when there is nothing to move, and false when the keychain already
+ * holds a value — a leftover plaintext copy is stale by definition and must
+ * never overwrite it, or a revoked token could come back. The caller deletes
+ * the plaintext copy either way; this only decides whether a write is owed
+ * first, so a half-finished migration cannot drop the only copy.
+ */
+export function shouldMigrateToken(
+  storedToken: string | undefined,
+  existingSecret: string | null,
+): boolean {
+  return !!storedToken?.trim() && !existingSecret;
 }
 
 /**
- * What to do about a token found sitting in `data.json`.
+ * The plugin's whole relationship with the access token.
  *
- * Returns null when there is nothing to move — either the vault never held a
- * plaintext token, or it has already been migrated and the id is recorded. The
- * caller deletes the plaintext copy either way; this only decides whether a
- * keychain write is owed first, so that a half-finished migration cannot drop
- * the only copy of the token.
+ * Extracted from `main.ts` so it can actually be tested: that file imports
+ * Obsidian, so the unit suite cannot load it, and asserting on the built bundle
+ * only proves the keychain API is *mentioned* — a call site can be deleted and
+ * every string still matches. Behaviour belongs somewhere a fake can drive it.
  */
-export function planTokenMigration(
-  storedToken: string | undefined,
-  storedSecretId: string | undefined,
-): TokenMigration | null {
-  const token = storedToken?.trim();
-  if (!token) return null;
-  // An id already recorded means the keychain is the source of truth; a
-  // leftover plaintext copy is stale and must not overwrite it.
-  if (storedSecretId) return null;
-  return { secretId: TOKEN_SECRET_ID, secret: token };
+export class TokenStore {
+  constructor(private readonly secrets: SecretsPort) {}
+
+  /**
+   * The token, read on demand — it is never held on an object that gets saved.
+   *
+   * An empty entry reads as absent. Clearing the field in settings writes a
+   * blank, and returning that as a string would have the plugin try to
+   * authenticate with nothing instead of reporting itself unconfigured.
+   */
+  get(): string | undefined {
+    return this.secrets.get(TOKEN_SECRET_ID) || undefined;
+  }
+
+  /** Blank clears it, so removing the token in settings really removes it. */
+  set(token: string): void {
+    this.secrets.set(TOKEN_SECRET_ID, token.trim());
+  }
+
+  /**
+   * Move a token left in `data.json` by an older build into the keychain.
+   *
+   * Returns whether anything moved, so the caller can say so. The write happens
+   * here and the caller deletes the plaintext copy afterwards; doing it in that
+   * order means an interruption leaves two copies rather than none.
+   */
+  migrate(storedToken: string | undefined): boolean {
+    if (!shouldMigrateToken(storedToken, this.secrets.get(TOKEN_SECRET_ID))) return false;
+    this.secrets.set(TOKEN_SECRET_ID, storedToken!.trim());
+    return true;
+  }
 }
