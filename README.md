@@ -5,17 +5,18 @@ Sync your Obsidian vault notes into [Fokus](https://getfokus.com).
 Notes flow both directions, with edit locking, conflict copies, and embedded
 images uploaded to Fokus.
 
-Desktop only for now. Nothing in the code needs Node, but `addStatusBarItem` —
-the plugin's only persistent feedback surface — is unavailable on mobile, and
-`crypto.subtle`/`crypto.randomUUID` are secure-context-gated and unverified on
-an Android WebView. Claiming mobile before testing it on a device would be a
-guess.
+Desktop only for now.
 
 ## What it sends where
 
 Every synced note is sent to your own Fokus account at `https://api.getfokus.com`.
-Endpoints used: `/v1/notes`, `/v1/workspaces`, `/integrations/obsidian/*`.
-Nothing else leaves the vault, and there is no telemetry.
+Endpoints used: `/v1/notes` (note content), `/v1/uploads` (embedded images),
+`/v1/tags` (tag names), `/v1/workspaces`, and `/integrations/obsidian/*` (the
+vault registration and its folder settings). Nothing else leaves the vault, and
+there is no telemetry.
+
+A **Developer mode** toggle in settings points the plugin at a different server;
+it exists for local and staging builds, and is off unless you turn it on.
 
 Your access token is stored in `.obsidian/plugins/fokus-sync/data.json`, in plain
 text — Obsidian has no secure storage. If your vault syncs through iCloud,
@@ -25,9 +26,9 @@ and revoke it if the vault is ever shared.
 ## Getting a token
 
 In Fokus, go to **Settings → Integrations → Obsidian**, create a token under
-**API tokens**, and paste it into the
-plugin's settings. The value is shown once; if you lose it, revoke that token and
-make another. Name it after this vault so you can tell which one to revoke later.
+**API tokens**, and paste it into the plugin's settings. The value is shown once;
+if you lose it, revoke that token and create another. Name it after this vault so
+you can tell which one to revoke later.
 
 A token grants full access to your account for 90 days. See the storage warning
 above before putting one in a vault you share or back up to someone else's
@@ -144,10 +145,12 @@ markdown write to those rather than flattening them.
 
 ```bash
 npm install
-npm run dev        # watch build into main.js
-npm run build      # typecheck + production bundle
-npm test           # unit + engine tests (no backend needed)
-npm run test:e2e   # the real engine against a local backend
+npm run dev          # watch build into main.js
+npm run build        # typecheck + production bundle
+npm test             # unit + engine tests (no backend needed)
+npm run test:e2e     # the real engine against a local backend
+npm run types:check  # tsc only
+npm run format:check # prettier
 ```
 
 `npm run test:e2e` needs the Fokus backend running locally
@@ -158,9 +161,14 @@ localhost — it creates and rewrites notes.
 
 The engine talks to a `VaultPort` and a `FokusPort` and imports neither Obsidian
 nor the network. The e2e harness swaps in a real temp-directory vault and Node
-fetch, so the code under test is the code that ships. What the harness cannot
-cover, and needs checking by hand in Obsidian: the settings tab, the file
-watcher firing, `processFrontMatter`'s YAML round-trip, and unload cleanup.
+fetch, so the code under test is the code that ships.
+
+Some things the harness cannot reach and only a real vault proves: the settings
+tab, the file watcher firing, `processFrontMatter`'s YAML round-trip, and unload
+cleanup. `src/main.ts` imports Obsidian, so the unit suite cannot load it at all
+— behaviour wired only there is asserted against the built `main.js` in
+`tests/bundle.test.ts`, which is the only place a helper nobody calls looks
+different from one that is called.
 
 ## Licence
 
