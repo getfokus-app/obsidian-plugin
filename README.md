@@ -117,16 +117,59 @@ not recoverable. Put the file back with its `fokus-id` intact and it re-links.
 The queue is persisted, so quitting or crashing mid-sync resumes where it
 stopped rather than dropping the rest.
 
-## Markdown fidelity
+## Limitations
+
+Measured, not assumed — every line here is covered by a test in the backend
+converter.
+
+**Preserved exactly, but Fokus has no feature for them**, so they show as the
+characters you typed rather than as a rendered thing:
+
+| You wrote | In Fokus |
+| --- | --- |
+| `[[Note]]`, `[[Note\|alias]]` | plain text, not a link |
+| `[^1]` and its definition | plain text, not a footnote |
+| `^block-id` | plain text, not an anchor |
+| `> [!warning]` callout | a plain blockquote, `[!warning]` included |
+| `$x$`, `$$x$$` | plain text, not maths |
+| `%%comment%%` | **visible** — Obsidian hides these, Fokus does not |
+| Dataview, Templater, Tasks syntax | plain text |
+
+Nothing there is lost, and it comes back to the vault byte-identical. The one
+worth knowing is `%%comments%%`: what you meant as a private note is readable in
+Fokus.
+
+**Rewritten once, the first time a file syncs.** After that the file is stable:
+
+- `* item` becomes `- item`; `_italic_` becomes `*italic*`
+- setext headings become `#` headings; indented code becomes fenced
+- tables lose column alignment (`:--` becomes `---`)
+- `H~2~O` becomes `H~~2~~O` — a single tilde is read as strikethrough
+
+**Genuinely lossy.** These are the ones to avoid in a synced folder:
+
+- `\*escaped stars\*` lose their backslashes and become emphasis
+- `[text](<path with spaces.md>)` loses its angle brackets **and the link with
+  them** — it becomes plain text
+- a plain bullet in a list that also contains a task becomes a task
+
+**Refused rather than flattened.** A note holding mentions, drawings,
+handwritten pages or collapsible sections cannot be represented in markdown, so
+Fokus rejects a write from the vault instead of destroying them.
+
+**Not supported at all:** non-`.md` files including Canvas; renaming a file when
+its Fokus title changes; moving a file when its bucket changes; deleting on
+either side (it only ever unlinks); Obsidian mobile.
+
+`docs/sample-note.md` is a real note exercising all of this. It round-trips
+byte-identically, and is what the screenshot above shows.
+
+## How that is enforced
 
 Content is converted by Fokus, not by this plugin, so there is exactly one
 definition of "canonical markdown" and the file cannot drift from it.
 
-The first time a file syncs it is normalised to that canonical form, which may
-rewrite it once (`* ` becomes `- `, `_italic_` becomes `*italic*`, tables lose
-column alignment). After that it is stable.
-
-Whether the content settles is checked **on the server, before your file is
+Whether a file settles is checked **on the server, before your file is
 touched**: the plugin re-sends the server's own output until it stops changing.
 Some markdown genuinely needs three passes — escaped `\*stars\*` is the known
 case — so one round trip would prove nothing. A file that still has not settled
@@ -134,15 +177,10 @@ is refused: its body is left exactly as you wrote it, and it stays refused until
 you edit it. Only a `fokus-id` is added, so the refusal is remembered and the
 note is not created twice.
 
-Known lossy constructs, verified rather than assumed: escaped markdown
-(`\*stars\*`) loses its backslashes; a wikilink alias inside a table cell
-(`| [[A\|B]] |`) breaks the row; `[text](<path with spaces.md>)` loses its angle
-brackets and the link with them; a plain bullet in a list that also contains a
-task becomes a task.
-
-Notes authored in Fokus that contain mentions, drawings, handwritten pages or
-collapsible sections cannot be represented in markdown. The server refuses a
-markdown write to those rather than flattening them.
+The honest limit of that check: it catches a file that never settles, not one
+that settles on something wrong. A wikilink alias inside a table cell used to
+destroy a cell and then converge, so the probe accepted it — that specific bug
+is fixed, but the shape of the gap is worth knowing.
 
 ## Development
 
